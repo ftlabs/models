@@ -30,6 +30,8 @@ import data
 import seq2seq_attention_decode
 import seq2seq_attention_model
 
+import os.path
+
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('data_path',
                            '', 'Path expression to tf.Example.')
@@ -64,6 +66,9 @@ tf.app.flags.DEFINE_bool('truncate_input', False,
 tf.app.flags.DEFINE_integer('num_gpus', 0, 'Number of gpus used.')
 tf.app.flags.DEFINE_integer('random_seed', 111, 'A seed value for randomness.')
 
+tf.app.flags.DEFINE_string('stop_file', 'STOP',
+                           'the training loop will end if this file exists.')
+
 
 def _RunningAvgLoss(loss, running_avg_loss, summary_writer, step, decay=0.999):
   """Calculate the running average of losses."""
@@ -97,7 +102,7 @@ def _Train(model, data_batcher):
     sess = sv.prepare_or_wait_for_session()
     running_avg_loss = 0
     step = 0
-    while not sv.should_stop() and step < FLAGS.max_run_steps:
+    while not sv.should_stop() and step < FLAGS.max_run_steps and not os.path.isfile(FLAGS.stop_file):
       (article_batch, abstract_batch, targets, article_lens, abstract_lens,
        loss_weights, _, _) = data_batcher.NextBatch()
       (_, summaries, loss, train_step) = model.run_train_step(
